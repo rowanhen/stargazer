@@ -1,74 +1,55 @@
-import { Command } from "commander";
+import { Command, Options } from "@effect/cli";
+import { Console, Effect, Option } from "effect";
 import { eclipsesInRange } from "../core/events/eclipses.js";
-import type { CommonOptions } from "../core/types.js";
+import type { EclipseEvent } from "../core/types.js";
+import { literals } from "../core/literals.js";
+import { formatUtc, fromOption, jsonOption, printJson, toOption } from "./shared.js";
 
-interface EclipseOptions extends CommonOptions {
-  type?: string;
-}
+const ECLIPSE_TYPES = literals("solar", "lunar") satisfies ReadonlyArray<EclipseEvent["type"]>;
 
-export const eclipseCommand = new Command("eclipse")
-  .description("List solar and lunar eclipses in a time window")
-  .option("-f, --from <iso>", "Start date (ISO format)")
-  .option("-T, --to <iso>", "End date (ISO format)")
-  .option("-t, --type <solar|lunar>", "Filter by eclipse type: solar, lunar")
-  .option("-j, --json", "Output as JSON", false)
-  .action(async (options: EclipseOptions) => {
-    const { from, to, json } = options;
+const typeOption = Options.choice("type", ECLIPSE_TYPES).pipe(
+  Options.withAlias("t"),
+  Options.withDescription("Filter by eclipse type: solar, lunar"),
+  Options.optional,
+);
 
-    if (!from || !to) {
-      console.error("Error: --from and --to are required");
-      process.exit(1);
-    }
+export const eclipseCommand = Command.make(
+  "eclipse",
+  { from: fromOption, to: toOption, type: typeOption, json: jsonOption },
+  ({ from, json, to, type }) =>
+    Effect.gen(function* () {
+      const typeFilter = Option.getOrUndefined(type);
+      const events = eclipsesInRange(from, to, typeFilter);
 
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
+      if (json) {
+        yield* printJson(events.map((event) => ({ ...event, date: event.date.toISOString() })));
+        return;
+      }
 
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-      console.error("Error: Invalid date format. Use ISO format (e.g., 2024-01-01)");
-      process.exit(1);
-    }
+      if (events.length === 0) {
+        yield* Console.log("No eclipses found in this period.");
+        return;
+      }
 
-    const typeFilter = options.type as "solar" | "lunar" | undefined;
-    if (typeFilter && typeFilter !== "solar" && typeFilter !== "lunar") {
-      console.error("Error: --type must be 'solar' or 'lunar'");
-      process.exit(1);
-    }
+      yield* Console.log("\nEclipses");
+      yield* Console.log("─".repeat(58));
+      yield* Console.log(`Type:    ${typeFilter ?? "solar + lunar"}`);
+      yield* Console.log(`Period:  ${from} → ${to}`);
+      yield* Console.log("─".repeat(58));
 
-    const events = eclipsesInRange(fromDate, toDate, typeFilter);
+      for (const event of events) {
+        const symbol = event.type === "solar" ? "☀" : "☽";
+        const kind = event.kind.padEnd(10);
+        const extra =
+          event.type === "lunar" && event.obscuration !== undefined
+            ? `obscuration ${(event.obscuration * 100).toFixed(1)}%`
+            : "";
+        yield* Console.log(
+          `${symbol} ${event.type.padEnd(5)} ${kind}  ${formatUtc(event.date)}   ${extra}`,
+        );
+      }
 
-    if (json) {
-      console.log(
-        JSON.stringify(
-          events.map((e) => ({ ...e, date: e.date.toISOString() })),
-          null,
-          2
-        )
-      );
-      return;
-    }
-
-    if (events.length === 0) {
-      console.log("No eclipses found in this period.");
-      return;
-    }
-
-    console.log("\nEclipses");
-    console.log("─".repeat(58));
-    console.log(`Type:    ${typeFilter ?? "solar + lunar"}`);
-    console.log(`Period:  ${from} → ${to}`);
-    console.log("─".repeat(58));
-
-    for (const event of events) {
-      const symbol = event.type === "solar" ? "☀" : "☽";
-      const dateStr = event.date.toISOString().replace("T", " ").slice(0, 16) + " UTC";
-      const kind = event.kind.padEnd(10);
-      const extra =
-        event.type === "lunar" && event.obscuration !== undefined
-          ? `obscuration ${(event.obscuration * 100).toFixed(1)}%`
-          : "";
-      console.log(`${symbol} ${event.type.padEnd(5)} ${kind}  ${dateStr}   ${extra}`);
-    }
-
-    console.log("─".repeat(58));
-    console.log(`Total: ${events.length} eclipse(s)`);
-  });
+      yield* Console.log("─".repeat(58));
+      yield* Console.log(`Total: ${events.length} eclipse(s)`);
+    }),
+).pipe(Command.withDescription("List solar and lunar eclipses in a time window"));

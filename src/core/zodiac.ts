@@ -17,7 +17,13 @@ export const SIGNS: ZodiacSign[] = [
 
 export function longitudeToSign(longitude: number): ZodiacSign {
   const normalized = ((longitude % 360) + 360) % 360;
-  return SIGNS[Math.floor(normalized / 30)];
+  const sign = SIGNS[Math.floor(normalized / 30)];
+
+  if (sign === undefined) {
+    throw new RangeError(`Could not map longitude ${longitude} to a zodiac sign.`);
+  }
+
+  return sign;
 }
 
 export function signBoundary(signIndex: number): number {

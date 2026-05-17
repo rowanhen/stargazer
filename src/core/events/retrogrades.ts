@@ -1,5 +1,6 @@
-import * as Astronomy from "astronomy-engine";
+import { ASTRONOMY_BODIES } from "../bodies.js";
 import { geocentricEclipticLon } from "../geoLongitude.js";
+import { literals } from "../literals.js";
 import { longitudeToSign } from "../zodiac.js";
 import type { Planet, RetrogradeStation } from "../types.js";
 
@@ -15,13 +16,9 @@ const SCAN_INTERVAL: Record<Planet, number> = {
   Pluto: 15,
 };
 
-function toBody(planet: Planet): Astronomy.Body {
-  return Astronomy.Body[planet as keyof typeof Astronomy.Body];
-}
-
 // Apparent geocentric angular velocity in deg/day (positive = direct, negative = retrograde)
 function angularVelocity(planet: Planet, date: Date): number {
-  const body = toBody(planet);
+  const body = ASTRONOMY_BODIES[planet];
   const dt = 0.5; // half a day
   const before = new Date(date.getTime() - dt * 24 * 60 * 60 * 1000);
   const after = new Date(date.getTime() + dt * 24 * 60 * 60 * 1000);
@@ -42,7 +39,7 @@ function findStation(
   lo: Date,
   hi: Date,
   targetSign: "retrograde" | "direct",
-  toleranceMs = 60 * 60 * 1000
+  toleranceMs = 60 * 60 * 1000,
 ): Date {
   let loMs = lo.getTime();
   let hiMs = hi.getTime();
@@ -75,7 +72,7 @@ function findStation(
 export function retrogradesInRange(
   planet: Planet,
   fromDate: Date,
-  toDate: Date
+  toDate: Date,
 ): RetrogradeStation[] {
   const stations: RetrogradeStation[] = [];
   const intervalMs = SCAN_INTERVAL[planet] * 24 * 60 * 60 * 1000;
@@ -100,11 +97,11 @@ export function retrogradesInRange(
       // Transition: direct → retrograde (station retrograde)
       const stationDate = findStation(planet, prevDate, cursor, "retrograde");
       retroStart = stationDate;
-      retroStartLon = geocentricEclipticLon(toBody(planet), stationDate);
+      retroStartLon = geocentricEclipticLon(ASTRONOMY_BODIES[planet], stationDate);
     } else if (prevVelocity <= 0 && v > 0 && retroStart !== null) {
       // Transition: retrograde → direct (station direct)
       const stationDate = findStation(planet, prevDate, cursor, "direct");
-      const retroEndLon = geocentricEclipticLon(toBody(planet), stationDate);
+      const retroEndLon = geocentricEclipticLon(ASTRONOMY_BODIES[planet], stationDate);
 
       // Include if any part of the retrograde period overlaps the requested range
       const overlaps = retroStart <= toDate && stationDate >= fromDate;
@@ -128,12 +125,10 @@ export function retrogradesInRange(
     cursor = new Date(cursor.getTime() + intervalMs);
   }
 
-  return stations.sort(
-    (a, b) => a.startDate.getTime() - b.startDate.getTime()
-  );
+  return stations.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 }
 
-export const RETROGRADE_PLANETS: Planet[] = [
+export const RETROGRADE_PLANETS = literals(
   "Mercury",
   "Venus",
   "Mars",
@@ -142,4 +137,4 @@ export const RETROGRADE_PLANETS: Planet[] = [
   "Uranus",
   "Neptune",
   "Pluto",
-];
+) satisfies ReadonlyArray<Planet>;

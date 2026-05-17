@@ -6,10 +6,7 @@ import * as Astronomy from "astronomy-engine";
  * All other bodies use GeoVector → Ecliptic to get the apparent geocentric position,
  * which is required for retrograde detection, aspects, and ingress calculations.
  */
-export function geocentricEclipticLon(
-  body: Astronomy.Body,
-  date: Date
-): number {
+export function geocentricEclipticLon(body: Astronomy.Body, date: Date): number {
   if (body === Astronomy.Body.Sun) {
     // SunPosition returns apparent geocentric ecliptic coordinates
     const pos = Astronomy.SunPosition(date);

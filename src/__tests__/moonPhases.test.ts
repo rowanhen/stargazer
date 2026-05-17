@@ -15,28 +15,32 @@ describe("moonPhasesInRange", () => {
   test("returns events sorted by date", () => {
     const events = moonPhasesInRange(RANGE_JAN_2024.from, RANGE_JAN_2024.to);
     for (let i = 1; i < events.length; i++) {
-      expect(events[i].date.getTime()).toBeGreaterThanOrEqual(
-        events[i - 1].date.getTime()
-      );
+      expect(events[i].date.getTime()).toBeGreaterThanOrEqual(events[i - 1].date.getTime());
     }
   });
 
   test("all events fall within the requested range", () => {
     const events = moonPhasesInRange(RANGE_JAN_2024.from, RANGE_JAN_2024.to);
     for (const event of events) {
-      expect(event.date.getTime()).toBeGreaterThanOrEqual(
-        RANGE_JAN_2024.from.getTime()
-      );
-      expect(event.date.getTime()).toBeLessThanOrEqual(
-        RANGE_JAN_2024.to.getTime()
-      );
+      expect(event.date.getTime()).toBeGreaterThanOrEqual(RANGE_JAN_2024.from.getTime());
+      expect(event.date.getTime()).toBeLessThanOrEqual(RANGE_JAN_2024.to.getTime());
     }
   });
 
   test("each event has a valid zodiac sign", () => {
     const VALID_SIGNS = [
-      "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-      "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+      "Aries",
+      "Taurus",
+      "Gemini",
+      "Cancer",
+      "Leo",
+      "Virgo",
+      "Libra",
+      "Scorpio",
+      "Sagittarius",
+      "Capricorn",
+      "Aquarius",
+      "Pisces",
     ];
     const events = moonPhasesInRange(RANGE_JAN_2024.from, RANGE_JAN_2024.to);
     for (const event of events) {

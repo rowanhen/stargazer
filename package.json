@@ -23,6 +23,11 @@
     "build": "tsc -p tsconfig.json",
     "dev": "bun run src/cli.ts",
     "test": "bun test",
+    "check": "bun run lint && bun run format && bun run typecheck && bun run build && bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src/",
+    "format": "prettier --check src/",
+    "format:fix": "prettier --write src/",
     "validate": "bun run scripts/validate-horizons.ts",
     "prepare": "git config core.hooksPath .githooks"
   },
@@ -43,17 +48,24 @@
     "url": "git+https://github.com/rowanhen/stargazer.git"
   },
   "dependencies": {
+    "@effect/cli": "^0.75.1",
+    "@effect/platform": "^0.96.1",
+    "@effect/platform-bun": "^0.89.0",
     "astronomy-engine": "^2.1.19",
-    "commander": "^12.1.0"
+    "effect": "^3.21.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "@types/bun": "latest",
+    "oxlint": "^0.16.0",
+    "prettier": "^3.5.0"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "packageManager": "bun@1.3.5"
 }

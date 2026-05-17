@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "🔍 Running oxlint..."
+bun run lint || { echo "❌ Lint errors found. Fix before committing."; exit 1; }
+
+echo "🎨 Checking formatting..."
+bun run format || { echo "❌ Formatting issues found. Run 'bun run format:fix' to fix."; exit 1; }
+
+echo "🔎 Running typecheck..."
+bun run typecheck || { echo "❌ Typecheck failed. Fix errors before committing."; exit 1; }
+
+echo "🔨 Building..."
+bun run build || { echo "❌ Build failed. Fix errors before committing."; exit 1; }

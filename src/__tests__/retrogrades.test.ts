@@ -27,16 +27,25 @@ describe("retrogradesInRange", () => {
     // The station should start within 2 weeks of our known reference
     const aprilStation = stations[0];
     const diffDays = Math.abs(
-      (aprilStation.startDate.getTime() - range.start.getTime()) /
-        (1000 * 60 * 60 * 24)
+      (aprilStation.startDate.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24),
     );
     expect(diffDays).toBeLessThan(14);
   });
 
   test("stations have valid zodiac signs", () => {
     const VALID_SIGNS = [
-      "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-      "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+      "Aries",
+      "Taurus",
+      "Gemini",
+      "Cancer",
+      "Leo",
+      "Virgo",
+      "Libra",
+      "Scorpio",
+      "Sagittarius",
+      "Capricorn",
+      "Aquarius",
+      "Pisces",
     ];
     const stations = retrogradesInRange("Mercury", RANGE_2024.from, RANGE_2024.to);
     for (const station of stations) {
@@ -55,7 +64,7 @@ describe("retrogradesInRange", () => {
     const stations = retrogradesInRange("Mercury", RANGE_2024.from, RANGE_2024.to);
     for (let i = 1; i < stations.length; i++) {
       expect(stations[i].startDate.getTime()).toBeGreaterThanOrEqual(
-        stations[i - 1].startDate.getTime()
+        stations[i - 1].startDate.getTime(),
       );
     }
   });

@@ -1,5 +1,6 @@
-import * as Astronomy from "astronomy-engine";
+import { ASTRONOMY_BODIES } from "../bodies.js";
 import { geocentricEclipticLon } from "../geoLongitude.js";
+import { literals } from "../literals.js";
 import type { AspectType, LuminousBody, PlanetaryAspect } from "../types.js";
 
 const ASPECT_ANGLES: Record<AspectType, number> = {
@@ -19,12 +20,8 @@ const ASPECT_ORBS: Record<AspectType, number> = {
   opposition: 8,
 };
 
-function toBody(name: LuminousBody): Astronomy.Body {
-  return Astronomy.Body[name as keyof typeof Astronomy.Body];
-}
-
 function geoLon(body: LuminousBody, date: Date): number {
-  return geocentricEclipticLon(toBody(body), date);
+  return geocentricEclipticLon(ASTRONOMY_BODIES[body], date);
 }
 
 // Minimum angular arc between two longitudes (0–180)
@@ -39,7 +36,7 @@ function aspectDeviation(
   body1: LuminousBody,
   body2: LuminousBody,
   targetAngle: number,
-  date: Date
+  date: Date,
 ): number {
   const sep = angularSeparation(geoLon(body1, date), geoLon(body2, date));
   return Math.abs(sep - targetAngle);
@@ -52,7 +49,7 @@ function refineAspect(
   targetAngle: number,
   lo: Date,
   hi: Date,
-  toleranceMs = 30 * 60 * 1000
+  toleranceMs = 30 * 60 * 1000,
 ): { date: Date; orb: number } {
   let loMs = lo.getTime();
   let hiMs = hi.getTime();
@@ -80,14 +77,12 @@ export function aspectsInRange(
   body2: LuminousBody,
   fromDate: Date,
   toDate: Date,
-  aspectFilter?: AspectType
+  aspectFilter?: AspectType,
 ): PlanetaryAspect[] {
   const events: PlanetaryAspect[] = [];
   const intervalMs = 24 * 60 * 60 * 1000; // 1-day sampling
 
-  const aspectsToCheck: AspectType[] = aspectFilter
-    ? [aspectFilter]
-    : (Object.keys(ASPECT_ANGLES) as AspectType[]);
+  const aspectsToCheck = aspectFilter ? [aspectFilter] : ASPECT_TYPES;
 
   for (const aspect of aspectsToCheck) {
     const targetAngle = ASPECT_ANGLES[aspect];
@@ -131,7 +126,7 @@ export function aspectsInRange(
   return events.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-export const ALL_BODIES: LuminousBody[] = [
+export const ALL_BODIES = literals(
   "Sun",
   "Moon",
   "Mercury",
@@ -142,12 +137,12 @@ export const ALL_BODIES: LuminousBody[] = [
   "Uranus",
   "Neptune",
   "Pluto",
-];
+) satisfies ReadonlyArray<LuminousBody>;
 
-export const ASPECT_TYPES: AspectType[] = [
+export const ASPECT_TYPES = literals(
   "conjunction",
   "sextile",
   "square",
   "trine",
   "opposition",
-];
+) satisfies ReadonlyArray<AspectType>;

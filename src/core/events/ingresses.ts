@@ -1,5 +1,6 @@
-import * as Astronomy from "astronomy-engine";
+import { ASTRONOMY_BODIES } from "../bodies.js";
 import { geocentricEclipticLon } from "../geoLongitude.js";
+import { literals } from "../literals.js";
 import { longitudeToSign, SIGNS } from "../zodiac.js";
 import type { LuminousBody, SignIngress, ZodiacSign } from "../types.js";
 
@@ -18,12 +19,8 @@ const SAMPLE_INTERVALS: Record<string, number> = {
   Pluto: 180,
 };
 
-function toBody(body: LuminousBody): Astronomy.Body {
-  return Astronomy.Body[body as keyof typeof Astronomy.Body];
-}
-
 function getGeoLon(body: LuminousBody, date: Date): number {
-  return geocentricEclipticLon(toBody(body), date);
+  return geocentricEclipticLon(ASTRONOMY_BODIES[body], date);
 }
 
 // Binary search to find the exact ingress time at 1-minute resolution
@@ -31,7 +28,7 @@ function refineIngress(
   body: LuminousBody,
   beforeDate: Date,
   afterDate: Date,
-  targetBoundaryDeg: number
+  targetBoundaryDeg: number,
 ): Date {
   let lo = beforeDate.getTime();
   let hi = afterDate.getTime();
@@ -42,7 +39,7 @@ function refineIngress(
     const lon = getGeoLon(body, midDate);
 
     // Normalize relative to boundary: are we before or after it?
-    const normalized = ((lon - targetBoundaryDeg + 360) % 360);
+    const normalized = (lon - targetBoundaryDeg + 360) % 360;
 
     // normalized < 180 means we are just past the boundary (in the new sign)
     if (normalized < 180) {
@@ -55,11 +52,7 @@ function refineIngress(
   return new Date((lo + hi) / 2);
 }
 
-export function ingressesInRange(
-  body: LuminousBody,
-  fromDate: Date,
-  toDate: Date
-): SignIngress[] {
+export function ingressesInRange(body: LuminousBody, fromDate: Date, toDate: Date): SignIngress[] {
   const events: SignIngress[] = [];
   const intervalMs = (SAMPLE_INTERVALS[body] ?? 10) * 24 * 60 * 60 * 1000;
 
@@ -110,7 +103,7 @@ export function ingressesInRange(
   return events.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-export const PLANETS_WITH_INGRESSES: LuminousBody[] = [
+export const PLANETS_WITH_INGRESSES = literals(
   "Sun",
   "Moon",
   "Mercury",
@@ -121,4 +114,4 @@ export const PLANETS_WITH_INGRESSES: LuminousBody[] = [
   "Uranus",
   "Neptune",
   "Pluto",
-];
+) satisfies ReadonlyArray<LuminousBody>;

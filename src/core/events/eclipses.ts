@@ -4,7 +4,7 @@ import type { EclipseEvent } from "../types.js";
 export function eclipsesInRange(
   fromDate: Date,
   toDate: Date,
-  type?: "solar" | "lunar"
+  type?: "solar" | "lunar",
 ): EclipseEvent[] {
   const events: EclipseEvent[] = [];
 

@@ -1,104 +1,80 @@
-import { Command } from "commander";
+import { Command, Options } from "@effect/cli";
+import { Console, Effect, Option } from "effect";
+import { ALL_BODIES, ASPECT_TYPES, aspectsInRange } from "../core/events/aspects.js";
 import {
-  aspectsInRange,
-  ALL_BODIES,
-  ASPECT_TYPES,
-} from "../core/events/aspects.js";
-import type { AspectType, CommonOptions, LuminousBody } from "../core/types.js";
+  formatPeriodDate,
+  formatUtc,
+  fromOption,
+  jsonOption,
+  printJson,
+  toOption,
+} from "./shared.js";
 
-interface AspectsOptions extends CommonOptions {
-  body1?: string;
-  body2?: string;
-  aspect?: string;
-}
+const body1Option = Options.choice("body1", ALL_BODIES).pipe(
+  Options.withAlias("b"),
+  Options.withDescription(`First body (default: Sun). One of: ${ALL_BODIES.join(", ")}`),
+  Options.withDefault("Sun"),
+);
 
-export const aspectsCommand = new Command("aspects")
-  .description("Find planetary aspects in a time window")
-  .option("-f, --from <iso>", "Start date (ISO format)")
-  .option("-T, --to <iso>", "End date (ISO format)")
-  .option(
-    "-b, --body1 <name>",
-    `First body (default: Sun). One of: ${ALL_BODIES.join(", ")}`
-  )
-  .option(
-    "-B, --body2 <name>",
-    `Second body (default: Moon). One of: ${ALL_BODIES.join(", ")}`
-  )
-  .option(
-    "-a, --aspect <type>",
-    `Filter by aspect type: ${ASPECT_TYPES.join(", ")}`
-  )
-  .option("-j, --json", "Output as JSON", false)
-  .action(async (options: AspectsOptions) => {
-    const { from, to, json } = options;
+const body2Option = Options.choice("body2", ALL_BODIES).pipe(
+  Options.withAlias("B"),
+  Options.withDescription(`Second body (default: Moon). One of: ${ALL_BODIES.join(", ")}`),
+  Options.withDefault("Moon"),
+);
 
-    if (!from || !to) {
-      console.error("Error: --from and --to are required");
-      process.exit(1);
-    }
+const aspectOption = Options.choice("aspect", ASPECT_TYPES).pipe(
+  Options.withAlias("a"),
+  Options.withDescription(`Filter by aspect type: ${ASPECT_TYPES.join(", ")}`),
+  Options.optional,
+);
 
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
+export const aspectsCommand = Command.make(
+  "aspects",
+  {
+    from: fromOption,
+    to: toOption,
+    body1: body1Option,
+    body2: body2Option,
+    aspect: aspectOption,
+    json: jsonOption,
+  },
+  ({ aspect, body1, body2, from, json, to }) =>
+    Effect.gen(function* () {
+      if (body1 === body2) {
+        process.exitCode = 1;
+        yield* Console.error("Error: --body1 and --body2 must be different bodies");
+        return;
+      }
 
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-      console.error("Error: Invalid date format. Use ISO format (e.g., 2024-01-01)");
-      process.exit(1);
-    }
+      const aspectFilter = Option.getOrUndefined(aspect);
+      const events = aspectsInRange(body1, body2, from, to, aspectFilter);
 
-    const body1: LuminousBody = (options.body1 as LuminousBody) ?? "Sun";
-    const body2: LuminousBody = (options.body2 as LuminousBody) ?? "Moon";
+      if (json) {
+        yield* printJson(events.map((event) => ({ ...event, date: event.date.toISOString() })));
+        return;
+      }
 
-    if (!ALL_BODIES.includes(body1)) {
-      console.error(`Error: Unknown body '${body1}'. Choose from: ${ALL_BODIES.join(", ")}`);
-      process.exit(1);
-    }
-    if (!ALL_BODIES.includes(body2)) {
-      console.error(`Error: Unknown body '${body2}'. Choose from: ${ALL_BODIES.join(", ")}`);
-      process.exit(1);
-    }
-    if (body1 === body2) {
-      console.error("Error: --body1 and --body2 must be different bodies");
-      process.exit(1);
-    }
+      if (events.length === 0) {
+        yield* Console.log("No aspects found in this period.");
+        return;
+      }
 
-    const aspectFilter = options.aspect as AspectType | undefined;
-    if (aspectFilter && !ASPECT_TYPES.includes(aspectFilter)) {
-      console.error(`Error: Unknown aspect '${aspectFilter}'. Choose from: ${ASPECT_TYPES.join(", ")}`);
-      process.exit(1);
-    }
+      yield* Console.log("\nPlanetary Aspects");
+      yield* Console.log("─".repeat(60));
+      yield* Console.log(`Bodies:  ${body1} / ${body2}`);
+      yield* Console.log(`Aspect:  ${aspectFilter ?? "all"}`);
+      yield* Console.log(`Period:  ${formatPeriodDate(from)} → ${formatPeriodDate(to)}`);
+      yield* Console.log("─".repeat(60));
 
-    const events = aspectsInRange(body1, body2, fromDate, toDate, aspectFilter);
+      for (const event of events) {
+        const aspectPad = event.aspect.padEnd(11);
+        const orbStr = `orb ${event.orb.toFixed(1)}°`;
+        yield* Console.log(
+          `${formatUtc(event.date)}   ${aspectPad}  ${body1} / ${body2}   ${orbStr}`,
+        );
+      }
 
-    if (json) {
-      console.log(
-        JSON.stringify(
-          events.map((e) => ({ ...e, date: e.date.toISOString() })),
-          null,
-          2
-        )
-      );
-      return;
-    }
-
-    if (events.length === 0) {
-      console.log("No aspects found in this period.");
-      return;
-    }
-
-    console.log("\nPlanetary Aspects");
-    console.log("─".repeat(60));
-    console.log(`Bodies:  ${body1} / ${body2}`);
-    console.log(`Aspect:  ${aspectFilter ?? "all"}`);
-    console.log(`Period:  ${from} → ${to}`);
-    console.log("─".repeat(60));
-
-    for (const event of events) {
-      const dateStr = event.date.toISOString().replace("T", " ").slice(0, 16) + " UTC";
-      const aspectPad = event.aspect.padEnd(11);
-      const orbStr = `orb ${event.orb.toFixed(1)}°`;
-      console.log(`${dateStr}   ${aspectPad}  ${body1} / ${body2}   ${orbStr}`);
-    }
-
-    console.log("─".repeat(60));
-    console.log(`Total: ${events.length} aspects`);
-  });
+      yield* Console.log("─".repeat(60));
+      yield* Console.log(`Total: ${events.length} aspects`);
+    }),
+).pipe(Command.withDescription("Find planetary aspects in a time window"));

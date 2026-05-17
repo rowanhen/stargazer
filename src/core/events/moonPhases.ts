@@ -10,10 +10,7 @@ const PHASE_TARGETS: { name: MoonPhaseName; longitude: number }[] = [
   { name: "Last Quarter", longitude: 270 },
 ];
 
-export function moonPhasesInRange(
-  fromDate: Date,
-  toDate: Date
-): MoonPhaseEvent[] {
+export function moonPhasesInRange(fromDate: Date, toDate: Date): MoonPhaseEvent[] {
   const events: MoonPhaseEvent[] = [];
 
   // Search from slightly before the start to catch phases that fall exactly on fromDate
@@ -25,21 +22,14 @@ export function moonPhasesInRange(
     const limitDays = Math.min(totalDays + 5, 30);
 
     while (cursor < toDate) {
-      const result = Astronomy.SearchMoonPhase(
-        phase.longitude,
-        cursor,
-        limitDays
-      );
+      const result = Astronomy.SearchMoonPhase(phase.longitude, cursor, limitDays);
 
       if (!result) break;
 
       const eventDate = result.date;
 
       if (eventDate >= fromDate && eventDate <= toDate) {
-        const longitude = geocentricEclipticLon(
-          Astronomy.Body.Moon,
-          result.date
-        );
+        const longitude = geocentricEclipticLon(Astronomy.Body.Moon, result.date);
         events.push({
           name: phase.name,
           date: eventDate,

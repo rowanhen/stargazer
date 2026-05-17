@@ -24,18 +24,9 @@ export type ZodiacSign =
   | "Aquarius"
   | "Pisces";
 
-export type MoonPhaseName =
-  | "New Moon"
-  | "First Quarter"
-  | "Full Moon"
-  | "Last Quarter";
+export type MoonPhaseName = "New Moon" | "First Quarter" | "Full Moon" | "Last Quarter";
 
-export type AspectType =
-  | "conjunction"
-  | "sextile"
-  | "square"
-  | "trine"
-  | "opposition";
+export type AspectType = "conjunction" | "sextile" | "square" | "trine" | "opposition";
 
 export interface MoonPhaseEvent {
   name: MoonPhaseName;
